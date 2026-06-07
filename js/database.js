@@ -1,5 +1,5 @@
 /**
- * SCMS Hybrid Database Engine (Firebase Firestore with LocalStorage Fallback)
+ * SCMS Pure LocalStorage Database Engine
  */
 
 const DB_KEYS = {
@@ -7,19 +7,6 @@ const DB_KEYS = {
     COMPLAINTS: 'scms_complaints',
     CURRENT_USER: 'scms_current_user',
     CURRENT_ADMIN: 'scms_current_admin'
-};
-
-// ----------------------------------------------------
-// 1. FIREBASE CONFIGURATION & INITIALIZATION
-// ----------------------------------------------------
-// Replace placeholders with your own Firebase keys
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
 };
 
 // Default Admin Credentials
@@ -73,27 +60,8 @@ const DEFAULT_COMPLAINTS = [
     }
 ];
 
-let isFirebaseMode = false;
-let firestoreDb = null;
-
-// Determine DB Mode
-if (typeof firebase !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
-    try {
-        firebase.initializeApp(firebaseConfig);
-        firestoreDb = firebase.firestore();
-        isFirebaseMode = true;
-        console.log("SCMS Database: Initialized Firebase Firestore mode successfully.");
-    } catch (error) {
-        console.error("Firebase init failed, falling back to LocalStorage mode:", error);
-    }
-} else {
-    console.log("SCMS Database: Firebase config not set or library missing. Running in LocalStorage mode.");
-}
-
-// ----------------------------------------------------
-// 2. INTERNAL LOCALSTORAGE IMPLEMENTATION
-// ----------------------------------------------------
-function initLocalStorage() {
+// Initialize database with default data if empty
+function initDatabase() {
     if (!localStorage.getItem(DB_KEYS.USERS)) {
         localStorage.setItem(DB_KEYS.USERS, JSON.stringify(DEFAULT_USERS));
     }
@@ -102,114 +70,43 @@ function initLocalStorage() {
     }
 }
 
-if (!isFirebaseMode) {
-    initLocalStorage();
-}
+initDatabase();
 
 // ----------------------------------------------------
-// 3. AUTO-SEEDING FOR FIREBASE FIRESTORE
-// ----------------------------------------------------
-async function seedFirebaseIfEmpty() {
-    if (!isFirebaseMode) return;
-    try {
-        const usersSnap = await firestoreDb.collection('users').limit(1).get();
-        if (usersSnap.empty) {
-            console.log("SCMS Database: Seeding default users to Firestore...");
-            for (const user of DEFAULT_USERS) {
-                await firestoreDb.collection('users').doc(user.email.toLowerCase()).set(user);
-            }
-        }
-
-        const complaintsSnap = await firestoreDb.collection('complaints').limit(1).get();
-        if (complaintsSnap.empty) {
-            console.log("SCMS Database: Seeding default complaints to Firestore...");
-            for (const complaint of DEFAULT_COMPLAINTS) {
-                await firestoreDb.collection('complaints').doc(complaint.complaint_id.toString()).set(complaint);
-            }
-        }
-    } catch (e) {
-        console.warn("Auto-seeding Firebase failed. Check security rules:", e);
-    }
-}
-
-if (isFirebaseMode) {
-    seedFirebaseIfEmpty();
-}
-
-// ----------------------------------------------------
-// 4. UNIFIED ASYNCHRONOUS DATABASE INTERFACE
+// ASYNCHRONOUS LOCALSTORAGE DATABASE INTERFACE
 // ----------------------------------------------------
 const db = {
     // Student Authentication
     async getUsers() {
-        if (isFirebaseMode) {
-            const snap = await firestoreDb.collection('users').get();
-            const list = [];
-            snap.forEach(doc => list.push(doc.data()));
-            return list;
-        } else {
-            return JSON.parse(localStorage.getItem(DB_KEYS.USERS)) || [];
-        }
+        return JSON.parse(localStorage.getItem(DB_KEYS.USERS)) || [];
     },
 
     async registerStudent(name, email, password) {
         const cleanEmail = email.toLowerCase().trim();
+        const users = await this.getUsers();
         
-        if (isFirebaseMode) {
-            const userDoc = await firestoreDb.collection('users').doc(cleanEmail).get();
-            if (userDoc.exists) {
-                return { success: false, message: 'Email address already registered.' };
-            }
-
-            // Get a unique numeric ID
-            const usersSnap = await firestoreDb.collection('users').get();
-            let maxId = 100;
-            usersSnap.forEach(doc => {
-                const u = doc.data();
-                if (u.id && u.id > maxId) maxId = u.id;
-            });
-            const newId = maxId + 1;
-
-            const newUser = { id: newId, name, email: cleanEmail, password };
-            await firestoreDb.collection('users').doc(cleanEmail).set(newUser);
-            return { success: true, user: newUser };
-        } else {
-            const users = JSON.parse(localStorage.getItem(DB_KEYS.USERS)) || [];
-            if (users.some(u => u.email.toLowerCase() === cleanEmail)) {
-                return { success: false, message: 'Email address already registered.' };
-            }
-
-            const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 101;
-            const newUser = { id: newId, name, email: cleanEmail, password };
-            
-            users.push(newUser);
-            localStorage.setItem(DB_KEYS.USERS, JSON.stringify(users));
-            return { success: true, user: newUser };
+        if (users.some(u => u.email.toLowerCase() === cleanEmail)) {
+            return { success: false, message: 'Email address already registered.' };
         }
+
+        const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 101;
+        const newUser = { id: newId, name, email: cleanEmail, password };
+        
+        users.push(newUser);
+        localStorage.setItem(DB_KEYS.USERS, JSON.stringify(users));
+        return { success: true, user: newUser };
     },
 
     async loginStudent(email, password) {
         const cleanEmail = email.toLowerCase().trim();
+        const users = await this.getUsers();
+        const user = users.find(u => u.email.toLowerCase() === cleanEmail && u.password === password);
         
-        if (isFirebaseMode) {
-            const userDoc = await firestoreDb.collection('users').doc(cleanEmail).get();
-            if (userDoc.exists) {
-                const user = userDoc.data();
-                if (user.password === password) {
-                    sessionStorage.setItem(DB_KEYS.CURRENT_USER, JSON.stringify({ id: user.id, name: user.name, email: user.email }));
-                    return { success: true, user };
-                }
-            }
-            return { success: false, message: 'Invalid email or password.' };
-        } else {
-            const users = JSON.parse(localStorage.getItem(DB_KEYS.USERS)) || [];
-            const user = users.find(u => u.email.toLowerCase() === cleanEmail && u.password === password);
-            if (user) {
-                sessionStorage.setItem(DB_KEYS.CURRENT_USER, JSON.stringify({ id: user.id, name: user.name, email: user.email }));
-                return { success: true, user };
-            }
-            return { success: false, message: 'Invalid email or password.' };
+        if (user) {
+            sessionStorage.setItem(DB_KEYS.CURRENT_USER, JSON.stringify({ id: user.id, name: user.name, email: user.email }));
+            return { success: true, user };
         }
+        return { success: false, message: 'Invalid email or password.' };
     },
 
     // Admin Authentication
@@ -223,14 +120,7 @@ const db = {
 
     // Complaint CRUD Actions
     async getComplaints() {
-        if (isFirebaseMode) {
-            const snap = await firestoreDb.collection('complaints').get();
-            const list = [];
-            snap.forEach(doc => list.push(doc.data()));
-            return list;
-        } else {
-            return JSON.parse(localStorage.getItem(DB_KEYS.COMPLAINTS)) || [];
-        }
+        return JSON.parse(localStorage.getItem(DB_KEYS.COMPLAINTS)) || [];
     },
 
     async getStudentComplaints(userId) {
@@ -240,13 +130,8 @@ const db = {
 
     async getComplaintById(complaintId) {
         const idInt = parseInt(complaintId);
-        if (isFirebaseMode) {
-            const doc = await firestoreDb.collection('complaints').doc(idInt.toString()).get();
-            return doc.exists ? doc.data() : null;
-        } else {
-            const all = await this.getComplaints();
-            return all.find(c => c.complaint_id === idInt) || null;
-        }
+        const all = await this.getComplaints();
+        return all.find(c => c.complaint_id === idInt) || null;
     },
 
     async addComplaint(userId, userName, title, category, priority, description) {
@@ -266,83 +151,48 @@ const db = {
             admin_remarks: ''
         };
 
-        if (isFirebaseMode) {
-            await firestoreDb.collection('complaints').doc(newId.toString()).set(newComplaint);
-            return { success: true, complaint: newComplaint };
-        } else {
-            complaints.push(newComplaint);
-            localStorage.setItem(DB_KEYS.COMPLAINTS, JSON.stringify(complaints));
-            return { success: true, complaint: newComplaint };
-        }
+        complaints.push(newComplaint);
+        localStorage.setItem(DB_KEYS.COMPLAINTS, JSON.stringify(complaints));
+        return { success: true, complaint: newComplaint };
     },
 
     async updateComplaint(complaintId, title, description) {
         const idInt = parseInt(complaintId);
+        const complaints = await this.getComplaints();
+        const index = complaints.findIndex(c => c.complaint_id === idInt);
         
-        if (isFirebaseMode) {
-            const docRef = firestoreDb.collection('complaints').doc(idInt.toString());
-            const doc = await docRef.get();
-            if (!doc.exists) return { success: false, message: 'Complaint not found.' };
-            
-            const data = doc.data();
-            if (data.status !== 'Pending') {
-                return { success: false, message: 'Only pending complaints can be edited.' };
-            }
-
-            await docRef.update({ title, description });
-            return { success: true };
-        } else {
-            const complaints = await this.getComplaints();
-            const index = complaints.findIndex(c => c.complaint_id === idInt);
-            
-            if (index === -1) return { success: false, message: 'Complaint not found.' };
-            if (complaints[index].status !== 'Pending') {
-                return { success: false, message: 'Only pending complaints can be edited.' };
-            }
-
-            complaints[index].title = title;
-            complaints[index].description = description;
-            
-            localStorage.setItem(DB_KEYS.COMPLAINTS, JSON.stringify(complaints));
-            return { success: true };
+        if (index === -1) return { success: false, message: 'Complaint not found.' };
+        if (complaints[index].status !== 'Pending') {
+            return { success: false, message: 'Only pending complaints can be edited.' };
         }
+
+        complaints[index].title = title;
+        complaints[index].description = description;
+        
+        localStorage.setItem(DB_KEYS.COMPLAINTS, JSON.stringify(complaints));
+        return { success: true };
     },
 
     // Admin Actions
     async updateComplaintStatus(complaintId, status, remarks) {
         const idInt = parseInt(complaintId);
+        const complaints = await this.getComplaints();
+        const index = complaints.findIndex(c => c.complaint_id === idInt);
+        
+        if (index === -1) return { success: false, message: 'Complaint not found.' };
 
-        if (isFirebaseMode) {
-            const docRef = firestoreDb.collection('complaints').doc(idInt.toString());
-            const doc = await docRef.get();
-            if (!doc.exists) return { success: false, message: 'Complaint not found.' };
-
-            await docRef.update({ status, admin_remarks: remarks || '' });
-            return { success: true };
-        } else {
-            const complaints = await this.getComplaints();
-            const index = complaints.findIndex(c => c.complaint_id === idInt);
-            
-            if (index === -1) return { success: false, message: 'Complaint not found.' };
-
-            complaints[index].status = status;
-            complaints[index].admin_remarks = remarks || '';
-            
-            localStorage.setItem(DB_KEYS.COMPLAINTS, JSON.stringify(complaints));
-            return { success: true };
-        }
+        complaints[index].status = status;
+        complaints[index].admin_remarks = remarks || '';
+        
+        localStorage.setItem(DB_KEYS.COMPLAINTS, JSON.stringify(complaints));
+        return { success: true };
     },
 
     async deleteComplaint(complaintId) {
         const idInt = parseInt(complaintId);
-        if (isFirebaseMode) {
-            await firestoreDb.collection('complaints').doc(idInt.toString()).delete();
-            return { success: true };
-        } else {
-            let complaints = await this.getComplaints();
-            complaints = complaints.filter(c => c.complaint_id !== idInt);
-            localStorage.setItem(DB_KEYS.COMPLAINTS, JSON.stringify(complaints));
-            return { success: true };
-        }
+        let complaints = await this.getComplaints();
+        complaints = complaints.filter(c => c.complaint_id !== idInt);
+        localStorage.setItem(DB_KEYS.COMPLAINTS, JSON.stringify(complaints));
+        return { success: true };
     }
 };
