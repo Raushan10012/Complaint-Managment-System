@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration - SCMS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="auth-wrapper">
+    <main class="auth-container-glass">
+        <div class="auth-side-art">
+            <img src="assets/student.png" alt="Student Art">
+            <h2>Join the Platform</h2>
+            <p>Create your personal student account to easily submit issues, track progress, and communicate directly with administrators.</p>
+        </div>
+        
+        <div class="auth-form-side">
+            <div class="auth-logo">
+                <img src="assets/logo.png" alt="Logo">
+                <span>SCMS</span>
+            </div>
+            
+            <h1>Student Registration</h1>
+            <p class="subtext">Fill in the fields below to register a new account.</p>
+            
+            <div id="alert-container" style="display: none;"></div>
+            
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" class="form-control" placeholder="Enter your name" required autocomplete="name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" class="form-control" placeholder="Enter your email" required autocomplete="email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="form-control" placeholder="Enter your password" required autocomplete="new-password">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" class="form-control" placeholder="Enter your password again" required autocomplete="new-password">
+                </div>
+                
+                <button type="submit" class="btn-premium" style="width: 100%; margin-top: 10px;" id="btn-submit-register">Create Account</button>
+            </form>
+            
+            <div class="auth-link">
+                Already have an account? <a href="login.html" id="link-login">Login Here</a>
+            </div>
+            <div class="auth-link" style="margin-top: 10px;">
+                <a href="index.html" style="color: var(--color-text-light);">← Back to Portal Page</a>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="js/database.js"></script>
+<script>
+    document.getElementById('register-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        const alertDiv = document.getElementById('alert-container');
+        
+        alertDiv.style.display = 'none';
+        alertDiv.className = 'alert alert-danger';
+        
+        // Validation checks
+        if (password !== confirmPassword) {
+            alertDiv.textContent = 'Passwords do not match.';
+            alertDiv.style.display = 'flex';
+            return;
+        }
+
+        if (password.length < 6) {
+            alertDiv.textContent = 'Password must be at least 6 characters.';
+            alertDiv.style.display = 'flex';
+            return;
+        }
+        
+        const response = await db.registerStudent(name, email, password);
+        
+        if (response.success) {
+            alertDiv.className = 'alert alert-success';
+            alertDiv.textContent = 'Account created successfully! Logging you in...';
+            alertDiv.style.display = 'flex';
+            
+            // Auto-login after 1 second
+            setTimeout(async () => {
+                await db.loginStudent(email, password);
+                window.location.href = 'dashboard.html';
+            }, 1000);
+        } else {
+            alertDiv.textContent = response.message || 'Registration failed.';
+            alertDiv.style.display = 'flex';
+        }
+    });
+</script>
+</body>
+</html>

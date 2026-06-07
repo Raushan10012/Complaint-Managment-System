@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Complaints - SCMS</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 24px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .filter-group label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-text-medium);
+            white-space: nowrap;
+        }
+        .filter-group .form-control {
+            padding: 8px 12px;
+            min-width: 150px;
+            margin-top: 0;
+        }
+        .search-control {
+            flex-grow: 1;
+            min-width: 250px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar Navigation -->
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <img src="assets/logo.png" alt="Logo">
+        <h2>SCMS Portal</h2>
+    </div>
+    
+    <ul class="sidebar-menu">
+        <li>
+            <a href="dashboard.html" id="nav-dashboard">🏠 Dashboard</a>
+        </li>
+        <li>
+            <a href="add-complaint.html" id="nav-add">➕ Add Complaint</a>
+        </li>
+        <li class="active">
+            <a href="view-complaints.html" id="nav-view">📋 My Complaints</a>
+        </li>
+    </ul>
+    
+    <div class="sidebar-footer">
+        <a href="#" onclick="auth.logoutStudent(); return false;" style="color: #fca5a5; display: flex; align-items: center; gap: 14px; padding: 14px 18px; text-decoration: none; font-weight: 500;">🚪 Log Out</a>
+    </div>
+</nav>
+
+<!-- Main Workspace -->
+<main class="main-content">
+    <header class="top-bar">
+        <div class="page-title">
+            <h1>My Complaint History</h1>
+            <p>Manage, edit, and track statuses of all submitted complaints</p>
+        </div>
+        
+        <div class="user-profile-widget">
+            <div class="avatar" id="avatar-letters">S</div>
+            <div class="info">
+                <div class="name" id="student-name">Student Name</div>
+                <div class="role">Student</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="premium-card">
+        <!-- Filter Header -->
+        <div class="filter-row">
+            <div class="filter-group search-control">
+                <input type="text" id="search-input" class="form-control" placeholder="Search by title or description..." style="margin-top: 0;">
+            </div>
+            
+            <div class="filter-group">
+                <label for="status-filter">Status</label>
+                <select id="status-filter" class="form-control" style="-webkit-appearance: listbox;">
+                    <option value="All">All Statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="priority-filter">Priority</label>
+                <select id="priority-filter" class="form-control" style="-webkit-appearance: listbox;">
+                    <option value="All">All Priorities</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Corrected and Aligned Table -->
+        <div class="table-responsive">
+            <table class="scms-table" id="complaints-history-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">ID</th>
+                        <th>Title</th>
+                        <th style="width: 130px;">Category</th>
+                        <th style="width: 100px;">Priority</th>
+                        <th style="width: 120px;">Date Filed</th>
+                        <th style="width: 120px;">Status</th>
+                        <th style="width: 120px; text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="history-tbody">
+                    <!-- Loaded dynamically -->
+                </tbody>
+            </table>
+            
+            <div id="no-records" style="display: none; text-align: center; padding: 50px; color: var(--color-text-light);">
+                <p style="font-size: 16px; font-weight: 500;">No complaints match the specified filters.</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Details View Modal -->
+<div class="modal-overlay" id="details-modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Complaint Details</h3>
+            <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <span class="badge" id="modal-badge-id">#1001</span>
+            <span class="badge" id="modal-badge-category">Hostel</span>
+            <span class="badge" id="modal-badge-priority">High</span>
+            <span class="badge" id="modal-badge-status">Pending</span>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--color-text-light); text-transform: uppercase;">Description</label>
+            <p id="modal-description" style="font-size: 15px; color: var(--color-text-dark); line-height: 1.6; margin-top: 5px; white-space: pre-wrap; background: #f8fafc; padding: 15px; border-radius: var(--border-radius-sm); border: 1px dashed #e2e8f0;"></p>
+        </div>
+        
+        <div id="modal-remarks-section" style="margin-bottom: 20px; display: none;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--color-text-light); text-transform: uppercase;">Administrative Feedback & Remarks</label>
+            <p id="modal-remarks" style="font-size: 15px; color: #1e3a8a; line-height: 1.6; margin-top: 5px; background: #eff6ff; padding: 15px; border-radius: var(--border-radius-sm); border: 1px solid #bfdbfe; font-weight: 500;"></p>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--color-text-light); text-transform: uppercase;">Date Submitted</label>
+            <p id="modal-date" style="font-size: 14px; color: var(--color-text-medium); margin-top: 3px;"></p>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn-premium secondary" onclick="closeModal()">Close</button>
+            <a href="#" id="modal-edit-btn" class="btn-premium" style="display: none;">Edit Details</a>
+        </div>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="js/database.js"></script>
+<script src="js/auth.js"></script>
+<script>
+    // Enforce login
+    const user = auth.requireStudent();
+    
+    // Set UI details
+    document.getElementById('student-name').textContent = user.name;
+    const initials = user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    document.getElementById('avatar-letters').textContent = initials;
+
+    // Load elements
+    const tbody = document.getElementById('history-tbody');
+    const searchInput = document.getElementById('search-input');
+    const statusFilter = document.getElementById('status-filter');
+    const priorityFilter = document.getElementById('priority-filter');
+    const noRecords = document.getElementById('no-records');
+    
+    let complaints = [];
+
+    async function loadComplaints() {
+        complaints = await db.getStudentComplaints(user.id);
+        applyFilters();
+        
+        // Check if highlighted query exists
+        const urlParams = new URLSearchParams(window.location.search);
+        const highlightId = urlParams.get('highlight');
+        if (highlightId) {
+            await viewDetails(highlightId);
+        }
+    }
+
+    // Apply Filter Logic
+    function applyFilters() {
+        const query = searchInput.value.toLowerCase();
+        const status = statusFilter.value;
+        const priority = priorityFilter.value;
+        
+        tbody.innerHTML = '';
+        
+        const filtered = complaints.filter(c => {
+            const matchesSearch = c.title.toLowerCase().includes(query) || c.description.toLowerCase().includes(query);
+            const matchesStatus = status === 'All' || c.status === status;
+            const matchesPriority = priority === 'All' || c.priority === priority;
+            
+            return matchesSearch && matchesStatus && matchesPriority;
+        });
+
+        if (filtered.length === 0) {
+            noRecords.style.display = 'block';
+        } else {
+            noRecords.style.display = 'none';
+            
+            // Sort by ID descending
+            filtered.sort((a, b) => b.complaint_id - a.complaint_id).forEach(c => {
+                const tr = document.createElement('tr');
+                
+                const statusClass = c.status.toLowerCase().replace(' ', '-');
+                const priorityClass = c.priority.toLowerCase();
+                
+                const dateStr = new Date(c.created_at).toLocaleDateString('en-US', {
+                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+
+                // Check if editable (only Pending)
+                const isEditable = c.status === 'Pending';
+
+                tr.innerHTML = `
+                    <td><span class="complaint-id">#${c.complaint_id}</span></td>
+                    <td><span class="complaint-title">${escapeHTML(c.title)}</span></td>
+                    <td>${c.category}</td>
+                    <td><span class="badge priority-${priorityClass}">${c.priority}</span></td>
+                    <td style="font-size: 13.5px; color: var(--color-text-light);">${dateStr}</td>
+                    <td><span class="badge status-${statusClass}">${c.status}</span></td>
+                    <td style="text-align: center; white-space: nowrap;">
+                        <button class="btn-action" onclick="viewDetails(${c.complaint_id})" title="View Remarks & Details">👁️</button>
+                        ${isEditable ? `<a href="edit-complaint.html?id=${c.complaint_id}" class="btn-action" style="margin-left: 5px;" title="Edit Complaint">✏️</a>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    // Modal Operations
+    async function viewDetails(id) {
+        const c = await db.getComplaintById(id);
+        if (!c) return;
+
+        document.getElementById('modal-title').textContent = c.title;
+        document.getElementById('modal-badge-id').textContent = `#${c.complaint_id}`;
+        document.getElementById('modal-badge-category').textContent = c.category;
+        document.getElementById('modal-badge-category').className = `badge priority-low`;
+        document.getElementById('modal-badge-priority').textContent = `${c.priority} Priority`;
+        document.getElementById('modal-badge-priority').className = `badge priority-${c.priority.toLowerCase()}`;
+        document.getElementById('modal-badge-status').textContent = c.status;
+        document.getElementById('modal-badge-status').className = `badge status-${c.status.toLowerCase().replace(' ', '-')}`;
+        document.getElementById('modal-description').textContent = c.description;
+        
+        // Handle remarks
+        const remarksSection = document.getElementById('modal-remarks-section');
+        if (c.admin_remarks && c.admin_remarks.trim() !== '') {
+            document.getElementById('modal-remarks').textContent = c.admin_remarks;
+            remarksSection.style.display = 'block';
+        } else {
+            remarksSection.style.display = 'none';
+        }
+
+        // Formatted Date
+        const dateStr = new Date(c.created_at).toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        document.getElementById('modal-date').textContent = dateStr;
+
+        // Edit Button in Modal
+        const editBtn = document.getElementById('modal-edit-btn');
+        if (c.status === 'Pending') {
+            editBtn.href = `edit-complaint.html?id=${c.complaint_id}`;
+            editBtn.style.display = 'inline-flex';
+        } else {
+            editBtn.style.display = 'none';
+        }
+
+        document.getElementById('details-modal-overlay').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('details-modal-overlay').classList.remove('active');
+    }
+
+    // Escape special HTML chars
+    function escapeHTML(str) {
+        return str.replace(/[&<>'"]/g, 
+            tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+        );
+    }
+
+    // Set listeners
+    searchInput.addEventListener('input', applyFilters);
+    statusFilter.addEventListener('change', applyFilters);
+    priorityFilter.addEventListener('change', applyFilters);
+
+    // Initial render
+    loadComplaints();
+</script>
+</body>
+</html>

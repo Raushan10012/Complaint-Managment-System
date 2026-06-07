@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - SCMS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Sidebar Navigation -->
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <img src="assets/logo.png" alt="Logo">
+        <h2>SCMS Portal</h2>
+    </div>
+    
+    <ul class="sidebar-menu">
+        <li class="active">
+            <a href="dashboard.html" id="nav-dashboard">🏠 Dashboard</a>
+        </li>
+        <li>
+            <a href="add-complaint.html" id="nav-add">➕ Add Complaint</a>
+        </li>
+        <li>
+            <a href="view-complaints.html" id="nav-view">📋 My Complaints</a>
+        </li>
+    </ul>
+    
+    <div class="sidebar-footer">
+        <a href="#" onclick="auth.logoutStudent(); return false;" style="color: #fca5a5; display: flex; align-items: center; gap: 14px; padding: 14px 18px; text-decoration: none; font-weight: 500;">🚪 Log Out</a>
+    </div>
+</nav>
+
+<!-- Main Workspace -->
+<main class="main-content">
+    <header class="top-bar">
+        <div class="page-title">
+            <h1 id="welcome-header">Welcome, Student</h1>
+            <p>Monitor your complaints and view resolution updates</p>
+        </div>
+        
+        <div class="user-profile-widget">
+            <div class="avatar" id="avatar-letters">S</div>
+            <div class="info">
+                <div class="name" id="student-name">Student Name</div>
+                <div class="role">Student</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Stats Row -->
+    <section class="stats-grid">
+        <div class="stat-card-premium total">
+            <div class="stat-info">
+                <h3>Total Complaints</h3>
+                <span class="stat-number" id="stats-total">0</span>
+            </div>
+            <div class="stat-icon-wrapper">📋</div>
+        </div>
+        
+        <div class="stat-card-premium pending">
+            <div class="stat-info">
+                <h3>Pending Review</h3>
+                <span class="stat-number" id="stats-pending">0</span>
+            </div>
+            <div class="stat-icon-wrapper">⏳</div>
+        </div>
+        
+        <div class="stat-card-premium resolved">
+            <div class="stat-info">
+                <h3>Resolved Cases</h3>
+                <span class="stat-number" id="stats-resolved">0</span>
+            </div>
+            <div class="stat-icon-wrapper">✅</div>
+        </div>
+    </section>
+
+    <!-- Main Section -->
+    <div class="content-grid" style="grid-template-columns: 1fr;">
+        <div class="premium-card">
+            <div class="premium-card-header">
+                <h2>Recent Complaint Records</h2>
+                <a href="add-complaint.html" class="btn-premium" id="btn-quick-add">➕ File New Complaint</a>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="scms-table" id="recent-complaints-table">
+                    <thead>
+                        <tr>
+                            <th>Complaint ID</th>
+                            <th>Complaint Title</th>
+                            <th>Category</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Date Filed</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="complaints-list-tbody">
+                        <!-- Filled dynamically -->
+                    </tbody>
+                </table>
+                <div id="no-complaints-msg" style="display: none; text-align: center; padding: 40px; color: var(--color-text-light);">
+                    <p style="font-size: 16px; font-weight: 500;">You have not registered any complaints yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="js/database.js"></script>
+<script src="js/auth.js"></script>
+<script>
+    // Enforce login
+    const user = auth.requireStudent();
+    
+    // Set UI details
+    document.getElementById('student-name').textContent = user.name;
+    document.getElementById('welcome-header').textContent = `Welcome back, ${user.name.split(' ')[0]}`;
+    
+    // Set avatar letters
+    const initials = user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    document.getElementById('avatar-letters').textContent = initials;
+
+    async function loadDashboard() {
+        // Load metrics
+        const complaints = await db.getStudentComplaints(user.id);
+        const totalCount = complaints.length;
+        const pendingCount = complaints.filter(c => c.status === 'Pending').length;
+        const resolvedCount = complaints.filter(c => c.status === 'Resolved').length;
+
+        document.getElementById('stats-total').textContent = totalCount;
+        document.getElementById('stats-pending').textContent = pendingCount;
+        document.getElementById('stats-resolved').textContent = resolvedCount;
+
+        // Render list (limit to 5)
+        const tbody = document.getElementById('complaints-list-tbody');
+        tbody.innerHTML = '';
+        const recent = complaints.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
+
+        if (recent.length === 0) {
+            document.getElementById('no-complaints-msg').style.display = 'block';
+        } else {
+            document.getElementById('no-complaints-msg').style.display = 'none';
+            recent.forEach(c => {
+                const tr = document.createElement('tr');
+                
+                // Format status class name
+                const statusClass = c.status.toLowerCase().replace(' ', '-');
+                const priorityClass = c.priority.toLowerCase();
+                
+                // Format date
+                const dateStr = new Date(c.created_at).toLocaleDateString('en-US', {
+                    year: 'numeric', month: 'short', day: 'numeric'
+                });
+
+                tr.innerHTML = `
+                    <td><span class="complaint-id">#${c.complaint_id}</span></td>
+                    <td><span class="complaint-title">${escapeHTML(c.title)}</span></td>
+                    <td>${c.category}</td>
+                    <td><span class="badge priority-${priorityClass}">${c.priority}</span></td>
+                    <td><span class="badge status-${statusClass}">${c.status}</span></td>
+                    <td>${dateStr}</td>
+                    <td>
+                        <a href="view-complaints.html?highlight=${c.complaint_id}" class="btn-action" title="View Details">👁️</a>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    loadDashboard();
+
+    function escapeHTML(str) {
+        return str.replace(/[&<>'"]/g, 
+            tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+        );
+    }
+</script>
+</body>
+</html>

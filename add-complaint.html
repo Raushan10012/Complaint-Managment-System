@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File a Complaint - SCMS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Sidebar Navigation -->
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <img src="assets/logo.png" alt="Logo">
+        <h2>SCMS Portal</h2>
+    </div>
+    
+    <ul class="sidebar-menu">
+        <li>
+            <a href="dashboard.html" id="nav-dashboard">🏠 Dashboard</a>
+        </li>
+        <li class="active">
+            <a href="add-complaint.html" id="nav-add">➕ Add Complaint</a>
+        </li>
+        <li>
+            <a href="view-complaints.html" id="nav-view">📋 My Complaints</a>
+        </li>
+    </ul>
+    
+    <div class="sidebar-footer">
+        <a href="#" onclick="auth.logoutStudent(); return false;" style="color: #fca5a5; display: flex; align-items: center; gap: 14px; padding: 14px 18px; text-decoration: none; font-weight: 500;">🚪 Log Out</a>
+    </div>
+</nav>
+
+<!-- Main Workspace -->
+<main class="main-content">
+    <header class="top-bar">
+        <div class="page-title">
+            <h1>File a Complaint</h1>
+            <p>Submit a new issue to university administration for review</p>
+        </div>
+        
+        <div class="user-profile-widget">
+            <div class="avatar" id="avatar-letters">S</div>
+            <div class="info">
+                <div class="name" id="student-name">Student Name</div>
+                <div class="role">Student</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container-boxed" style="max-width: 800px; margin: 0;">
+        <div class="premium-card">
+            <div class="premium-card-header">
+                <h2>Complaint Registration Form</h2>
+            </div>
+            
+            <div id="alert-container" style="display: none;"></div>
+            
+            <form id="add-complaint-form">
+                <!-- Title Field -->
+                <div class="form-group">
+                    <label for="title">Complaint Title</label>
+                    <input type="text" id="title" class="form-control" placeholder="Brief summary of the issue (e.g. WiFi outage in library)" required>
+                </div>
+                
+                <!-- Double Column for Dropdowns -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- Category Dropdown -->
+                    <div class="form-group">
+                        <label for="category">Category</label>
+                        <select id="category" class="form-control" style="-webkit-appearance: listbox;">
+                            <option value="Academic">Academic Related</option>
+                            <option value="Infrastructure">Campus Infrastructure</option>
+                            <option value="Hostel">Hostel Accommodation</option>
+                            <option value="Library">Library Services</option>
+                            <option value="Finance">Fees & Finance</option>
+                            <option value="Other">Other Issues</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Priority Dropdown -->
+                    <div class="form-group">
+                        <label for="priority">Priority Urgency</label>
+                        <select id="priority" class="form-control" style="-webkit-appearance: listbox;">
+                            <option value="Low">Low - Informational / Minor</option>
+                            <option value="Medium" selected>Medium - Normal Business Impact</option>
+                            <option value="High">High - Critical / Urgent Action</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Description Field -->
+                <div class="form-group">
+                    <label for="description">Detailed Description</label>
+                    <textarea id="description" class="form-control" placeholder="Provide all relevant details, locations, dates, and names regarding the issue..." required></textarea>
+                </div>
+                
+                <!-- Actions Stack -->
+                <div style="display: flex; gap: 15px; margin-top: 30px;">
+                    <button type="submit" class="btn-premium" id="btn-submit">Submit Complaint</button>
+                    <a href="dashboard.html" class="btn-premium secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="js/database.js"></script>
+<script src="js/auth.js"></script>
+<script>
+    // Enforce login
+    const user = auth.requireStudent();
+    
+    // Set UI details
+    document.getElementById('student-name').textContent = user.name;
+    const initials = user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    document.getElementById('avatar-letters').textContent = initials;
+
+    // Handle Form Submit
+    document.getElementById('add-complaint-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const title = document.getElementById('title').value.trim();
+        const category = document.getElementById('category').value;
+        const priority = document.getElementById('priority').value;
+        const description = document.getElementById('description').value.trim();
+        const alertDiv = document.getElementById('alert-container');
+        
+        alertDiv.style.display = 'none';
+        
+        const response = await db.addComplaint(
+            user.id,
+            user.name,
+            title,
+            category,
+            priority,
+            description
+        );
+        
+        if (response.success) {
+            alertDiv.className = 'alert alert-success';
+            alertDiv.textContent = 'Complaint submitted successfully! Redirecting...';
+            alertDiv.style.display = 'flex';
+            
+            // Redirect after 1.2s
+            setTimeout(() => {
+                window.location.href = 'view-complaints.html';
+            }, 1200);
+        } else {
+            alertDiv.className = 'alert alert-danger';
+            alertDiv.textContent = response.message || 'Failed to submit complaint.';
+            alertDiv.style.display = 'flex';
+        }
+    });
+</script>
+</body>
+</html>

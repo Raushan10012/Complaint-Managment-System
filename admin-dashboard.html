@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - SCMS Control Panel</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .admin-nav {
+            background: #0f172a;
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 200;
+        }
+        .admin-nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        .admin-nav-logo img {
+            width: 38px;
+            height: 38px;
+        }
+        .admin-nav-logo span {
+            color: white;
+            font-size: 20px;
+            font-weight: 800;
+        }
+        .admin-nav-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .admin-nav-links a {
+            color: #94a3b8;
+            font-size: 15px;
+            font-weight: 500;
+            transition: var(--transition-fast);
+        }
+        .admin-nav-links a:hover, .admin-nav-links a.active {
+            color: white;
+        }
+        .admin-main-wrapper {
+            margin-top: 80px;
+            width: 100%;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        .filter-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        .chart-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        @media (max-width: 1024px) {
+            .chart-layout {
+                grid-template-columns: 1fr;
+            }
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body style="flex-direction: column;">
+
+<!-- Top Navigation Bar for Admin -->
+<nav class="admin-nav">
+    <a href="admin-dashboard.html" class="admin-nav-logo">
+        <img src="assets/logo.png" alt="Logo">
+        <span>SCMS Control Center</span>
+    </a>
+    
+    <div class="admin-nav-links">
+        <a href="admin-dashboard.html" class="active">📊 Dashboard</a>
+        <a href="#" onclick="auth.logoutAdmin(); return false;" style="color: #fca5a5; margin-left: 20px;">🚪 Log Out</a>
+    </div>
+</nav>
+
+<!-- Admin Main Workspace -->
+<main class="admin-main-wrapper">
+    <header class="top-bar">
+        <div class="page-title">
+            <h1>Administrative Dashboard</h1>
+            <p>Overview of system complaints, status metrics, and student tracking</p>
+        </div>
+        
+        <div class="user-profile-widget">
+            <div class="avatar" style="background: #0f172a;">A</div>
+            <div class="info">
+                <div class="name">Administrator</div>
+                <div class="role" style="color: var(--color-primary);">System Host</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Stats Cards Row -->
+    <section class="stats-grid">
+        <div class="stat-card-premium total">
+            <div class="stat-info">
+                <h3>Total Claims</h3>
+                <span class="stat-number" id="stats-total">0</span>
+            </div>
+            <div class="stat-icon-wrapper">📋</div>
+        </div>
+        
+        <div class="stat-card-premium pending">
+            <div class="stat-info">
+                <h3>Pending</h3>
+                <span class="stat-number" id="stats-pending">0</span>
+            </div>
+            <div class="stat-icon-wrapper">⏳</div>
+        </div>
+        
+        <div class="stat-card-premium inprogress">
+            <div class="stat-info">
+                <h3>In Progress</h3>
+                <span class="stat-number" id="stats-inprogress">0</span>
+            </div>
+            <div class="stat-icon-wrapper">⚙️</div>
+        </div>
+        
+        <div class="stat-card-premium resolved">
+            <div class="stat-info">
+                <h3>Resolved</h3>
+                <span class="stat-number" id="stats-resolved">0</span>
+            </div>
+            <div class="stat-icon-wrapper">✅</div>
+        </div>
+    </section>
+
+    <!-- Chart and Quick Summary Layout -->
+    <section class="chart-layout">
+        <!-- Summary Info Card -->
+        <div class="premium-card">
+            <div class="premium-card-header">
+                <h2>Operational Quick Summary</h2>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 10px;">
+                <p style="font-size: 15px; color: var(--color-text-medium); line-height: 1.6;">
+                    This administration console allows you to track all registered student reports. You can filters reports by categories, modify progress statuses, and provide remarks directly to the student portal.
+                </p>
+                <div style="background: var(--color-bg-primary); padding: 20px; border-radius: var(--border-radius-md); border: 1px solid rgba(0,0,0,0.03); display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <div style="font-size: 13px; color: var(--color-text-light); font-weight: 600; text-transform: uppercase;">Average Priority</div>
+                        <div style="font-size: 20px; font-weight: 700; color: var(--color-text-dark); margin-top: 5px;" id="summary-avg-priority">Medium</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 13px; color: var(--color-text-light); font-weight: 600; text-transform: uppercase;">Resolution Rate</div>
+                        <div style="font-size: 20px; font-weight: 700; color: var(--color-success); margin-top: 5px;" id="summary-resolution-rate">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chart Container Card -->
+        <div class="premium-card">
+            <div class="premium-card-header">
+                <h2>Complaint Status Breakdown</h2>
+            </div>
+            <div class="chart-card-wrapper">
+                <canvas id="statusChart" style="max-height: 220px;"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <!-- Master Complaints Table -->
+    <section class="premium-card">
+        <div class="premium-card-header">
+            <h2>Manage System Complaints</h2>
+        </div>
+        
+        <!-- Filter Controls -->
+        <div class="filter-grid">
+            <input type="text" id="search-input" class="form-control" placeholder="Search by student, title, description..." style="margin-top: 0;">
+            
+            <select id="status-filter" class="form-control" style="margin-top: 0; -webkit-appearance: listbox;">
+                <option value="All">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+            </select>
+            
+            <select id="priority-filter" class="form-control" style="margin-top: 0; -webkit-appearance: listbox;">
+                <option value="All">All Priorities</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+            </select>
+
+            <select id="category-filter" class="form-control" style="margin-top: 0; -webkit-appearance: listbox;">
+                <option value="All">All Categories</option>
+                <option value="Academic">Academic</option>
+                <option value="Infrastructure">Infrastructure</option>
+                <option value="Hostel">Hostel</option>
+                <option value="Library">Library</option>
+                <option value="Finance">Finance</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+
+        <!-- Corrected Master Table -->
+        <div class="table-responsive">
+            <table class="scms-table" id="admin-master-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">ID</th>
+                        <th>Student Name</th>
+                        <th>Complaint Title</th>
+                        <th style="width: 130px;">Category</th>
+                        <th style="width: 100px;">Priority</th>
+                        <th style="width: 120px;">Date Filed</th>
+                        <th style="width: 120px;">Status</th>
+                        <th style="width: 100px; text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-tbody">
+                    <!-- Loaded dynamically -->
+                </tbody>
+            </table>
+            
+            <div id="no-records" style="display: none; text-align: center; padding: 50px; color: var(--color-text-light);">
+                <p style="font-size: 16px; font-weight: 500;">No complaints match the specified search filters.</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- Admin Action Modal (Manage Complaint Dialog) -->
+<div class="modal-overlay" id="manage-modal-overlay">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3>Manage Complaint Details</h3>
+            <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        
+        <div id="alert-modal" class="alert alert-success" style="display: none;"></div>
+        
+        <form id="manage-complaint-form">
+            <input type="hidden" id="modal-complaint-id">
+            
+            <div style="background: #f8fafc; padding: 15px; border-radius: var(--border-radius-md); border: 1px solid #e2e8f0; margin-bottom: 20px;">
+                <div style="font-size: 13px; color: var(--color-text-light); font-weight: 600; text-transform: uppercase;">Student Name</div>
+                <div id="modal-student-name" style="font-weight: 700; font-size: 16px; margin-top: 3px;">-</div>
+                
+                <div style="font-size: 13px; color: var(--color-text-light); font-weight: 600; text-transform: uppercase; margin-top: 12px;">Title</div>
+                <div id="modal-complaint-title" style="font-weight: 500; font-size: 15px; margin-top: 3px; color: var(--color-text-dark);">-</div>
+                
+                <div style="font-size: 13px; color: var(--color-text-light); font-weight: 600; text-transform: uppercase; margin-top: 12px;">Description</div>
+                <div id="modal-complaint-desc" style="font-size: 14px; margin-top: 3px; color: var(--color-text-medium); max-height: 120px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;">-</div>
+            </div>
+
+            <!-- Double column layout -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div>
+                    <label style="font-size: 13px; font-weight: 600; color: var(--color-text-dark);">Category / Priority</label>
+                    <div style="margin-top: 5px;">
+                        <span class="badge priority-low" id="modal-badge-category">Category</span>
+                        <span class="badge" id="modal-badge-priority" style="margin-left: 5px;">Priority</span>
+                    </div>
+                </div>
+                <div>
+                    <label for="modal-status-select" style="font-size: 13px; font-weight: 600; color: var(--color-text-dark); display: block; margin-bottom: 5px;">Update Status</label>
+                    <select id="modal-status-select" class="form-control" style="padding: 6px 12px; margin-top: 0; -webkit-appearance: listbox;">
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Remarks Field -->
+            <div class="form-group">
+                <label for="modal-remarks-text">Administrative Remarks & Action Feedback</label>
+                <textarea id="modal-remarks-text" class="form-control" placeholder="Write feedback details, action schedules, or resolution information here..."></textarea>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn-premium secondary" onclick="closeModal()">Close</button>
+                <button type="submit" class="btn-premium" style="background: #0f172a;">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="js/database.js"></script>
+<script src="js/auth.js"></script>
+<script>
+    // Enforce login
+    auth.requireAdmin();
+
+    // Elements
+    const tbody = document.getElementById('admin-tbody');
+    const searchInput = document.getElementById('search-input');
+    const statusFilter = document.getElementById('status-filter');
+    const priorityFilter = document.getElementById('priority-filter');
+    const categoryFilter = document.getElementById('category-filter');
+    const noRecords = document.getElementById('no-records');
+    
+    let chartInstance = null;
+
+    // Load metrics and refresh the view
+    async function refreshData() {
+        const complaints = await db.getComplaints();
+        const total = complaints.length;
+        const pending = complaints.filter(c => c.status === 'Pending').length;
+        const inprogress = complaints.filter(c => c.status === 'In Progress').length;
+        const resolved = complaints.filter(c => c.status === 'Resolved').length;
+
+        // Populate Cards
+        document.getElementById('stats-total').textContent = total;
+        document.getElementById('stats-pending').textContent = pending;
+        document.getElementById('stats-inprogress').textContent = inprogress;
+        document.getElementById('stats-resolved').textContent = resolved;
+
+        // Resolution Rate
+        const rate = total > 0 ? Math.round((resolved / total) * 100) : 0;
+        document.getElementById('summary-resolution-rate').textContent = `${rate}%`;
+
+        // Render Table
+        renderTable(complaints);
+
+        // Render Chart
+        renderChart(pending, inprogress, resolved);
+    }
+
+    // Render master table
+    function renderTable(complaints) {
+        const query = searchInput.value.toLowerCase();
+        const status = statusFilter.value;
+        const priority = priorityFilter.value;
+        const category = categoryFilter.value;
+
+        tbody.innerHTML = '';
+
+        const filtered = complaints.filter(c => {
+            const matchesSearch = c.user_name.toLowerCase().includes(query) || 
+                                  c.title.toLowerCase().includes(query) || 
+                                  c.description.toLowerCase().includes(query);
+            const matchesStatus = status === 'All' || c.status === status;
+            const matchesPriority = priority === 'All' || c.priority === priority;
+            const matchesCategory = category === 'All' || c.category === category;
+
+            return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
+        });
+
+        if (filtered.length === 0) {
+            noRecords.style.display = 'block';
+        } else {
+            noRecords.style.display = 'none';
+            
+            // Sort by ID descending
+            filtered.sort((a, b) => b.complaint_id - a.complaint_id).forEach(c => {
+                const tr = document.createElement('tr');
+                
+                const statusClass = c.status.toLowerCase().replace(' ', '-');
+                const priorityClass = c.priority.toLowerCase();
+                
+                const dateStr = new Date(c.created_at).toLocaleDateString('en-US', {
+                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+
+                tr.innerHTML = `
+                    <td><span class="complaint-id">#${c.complaint_id}</span></td>
+                    <td><span style="font-weight: 600; color: var(--color-text-dark);">${escapeHTML(c.user_name)}</span></td>
+                    <td><span class="complaint-title">${escapeHTML(c.title)}</span></td>
+                    <td>${c.category}</td>
+                    <td><span class="badge priority-${priorityClass}">${c.priority}</span></td>
+                    <td style="font-size: 13px; color: var(--color-text-light);">${dateStr}</td>
+                    <td><span class="badge status-${statusClass}">${c.status}</span></td>
+                    <td style="text-align: center;">
+                        <button class="btn-premium" style="padding: 6px 12px; font-size: 12px; border-radius: var(--border-radius-sm); box-shadow: none; background: #0f172a;" onclick="manageComplaint(${c.complaint_id})">Manage</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    // Render doughnut chart using Chart.js
+    function renderChart(pending, inprogress, resolved) {
+        const ctx = document.getElementById('statusChart').getContext('2d');
+        
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Pending', 'In Progress', 'Resolved'],
+                datasets: [{
+                    data: [pending, inprogress, resolved],
+                    backgroundColor: ['#f59e0b', '#3b82f6', '#10b981'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { family: 'Outfit', size: 12 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Manage Complaint Modal Logic
+    async function manageComplaint(id) {
+        const c = await db.getComplaintById(id);
+        if (!c) return;
+
+        document.getElementById('modal-complaint-id').value = c.complaint_id;
+        document.getElementById('modal-student-name').textContent = c.user_name;
+        document.getElementById('modal-complaint-title').textContent = c.title;
+        document.getElementById('modal-complaint-desc').textContent = c.description;
+        
+        // Badges
+        document.getElementById('modal-badge-category').textContent = c.category;
+        
+        const priorityBadge = document.getElementById('modal-badge-priority');
+        priorityBadge.textContent = `${c.priority} Priority`;
+        priorityBadge.className = `badge priority-${c.priority.toLowerCase()}`;
+
+        // Select Input
+        document.getElementById('modal-status-select').value = c.status;
+        
+        // Remarks
+        document.getElementById('modal-remarks-text').value = c.admin_remarks || '';
+
+        // Open
+        document.getElementById('alert-modal').style.display = 'none';
+        document.getElementById('manage-modal-overlay').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('manage-modal-overlay').classList.remove('active');
+    }
+
+    // Handle Manage form Submit
+    document.getElementById('manage-complaint-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const id = document.getElementById('modal-complaint-id').value;
+        const status = document.getElementById('modal-status-select').value;
+        const remarks = document.getElementById('modal-remarks-text').value.trim();
+        const modalAlert = document.getElementById('alert-modal');
+
+        const response = await db.updateComplaintStatus(id, status, remarks);
+        
+        if (response.success) {
+            modalAlert.textContent = 'Complaint updated successfully!';
+            modalAlert.style.display = 'flex';
+            
+            // Refresh data in view
+            await refreshData();
+
+            setTimeout(() => {
+                closeModal();
+            }, 800);
+        } else {
+            alert('Failed to update complaint.');
+        }
+    });
+
+    // Filtering listeners
+    searchInput.addEventListener('input', async () => renderTable(await db.getComplaints()));
+    statusFilter.addEventListener('change', async () => renderTable(await db.getComplaints()));
+    priorityFilter.addEventListener('change', async () => renderTable(await db.getComplaints()));
+    categoryFilter.addEventListener('change', async () => renderTable(await db.getComplaints()));
+
+    // HTML escape
+    function escapeHTML(str) {
+        return str.replace(/[&<>'"]/g, 
+            tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+        );
+    }
+
+    // Initial render
+    refreshData();
+</script>
+</body>
+</html>

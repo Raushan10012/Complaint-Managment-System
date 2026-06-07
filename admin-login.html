@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - SCMS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="auth-wrapper">
+    <main class="auth-container-glass" style="max-width: 1000px;">
+        <div class="auth-side-art" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+            <img src="assets/student.png" alt="Admin Art" style="filter: hue-rotate(90deg) drop-shadow(0 20px 30px rgba(0, 0, 0, 0.25));">
+            <h2>Administrative Panel</h2>
+            <p>Control center to manage student requests, updates statuses, analyze complaints, and coordinate with departments.</p>
+        </div>
+        
+        <div class="auth-form-side">
+            <div class="auth-logo">
+                <img src="assets/logo.png" alt="Logo">
+                <span style="color: #0f172a;">SCMS Admin</span>
+            </div>
+            
+            <h1>Admin Login</h1>
+            <p class="subtext">Enter administrator credentials to access the control panel.</p>
+            
+            <div id="error-message" class="alert alert-danger" style="display: none;"></div>
+            
+            <form id="admin-login-form">
+                <div class="form-group">
+                    <label for="username">Admin Username</label>
+                    <input type="text" id="username" class="form-control" placeholder="Enter your name" required autocomplete="username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="form-control" placeholder="Enter your password" required autocomplete="current-password">
+                </div>
+                
+                <button type="submit" class="btn-premium" style="width: 100%; margin-top: 10px; background: #0f172a;" id="btn-submit-admin">Access Dashboard</button>
+            </form>
+            
+            <div class="auth-link" style="margin-top: 25px;">
+                <a href="index.html" style="color: var(--color-text-light);">← Back to Portal Page</a>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="js/database.js"></script>
+<script>
+    document.getElementById('admin-login-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        const errorDiv = document.getElementById('error-message');
+        
+        errorDiv.style.display = 'none';
+        
+        const response = await db.loginAdmin(username, password);
+        
+        if (response.success) {
+            window.location.href = 'admin-dashboard.html';
+        } else {
+            errorDiv.textContent = response.message || 'Invalid admin credentials.';
+            errorDiv.style.display = 'flex';
+        }
+    });
+
+    // If already logged in, redirect to admin-dashboard
+    if (sessionStorage.getItem('scms_current_admin')) {
+        window.location.href = 'admin-dashboard.html';
+    }
+</script>
+</body>
+</html>

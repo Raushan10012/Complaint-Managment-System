@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Complaint - SCMS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Sidebar Navigation -->
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <img src="assets/logo.png" alt="Logo">
+        <h2>SCMS Portal</h2>
+    </div>
+    
+    <ul class="sidebar-menu">
+        <li>
+            <a href="dashboard.html" id="nav-dashboard">🏠 Dashboard</a>
+        </li>
+        <li>
+            <a href="add-complaint.html" id="nav-add">➕ Add Complaint</a>
+        </li>
+        <li class="active">
+            <a href="view-complaints.html" id="nav-view">📋 My Complaints</a>
+        </li>
+    </ul>
+    
+    <div class="sidebar-footer">
+        <a href="#" onclick="auth.logoutStudent(); return false;" style="color: #fca5a5; display: flex; align-items: center; gap: 14px; padding: 14px 18px; text-decoration: none; font-weight: 500;">🚪 Log Out</a>
+    </div>
+</nav>
+
+<!-- Main Workspace -->
+<main class="main-content">
+    <header class="top-bar">
+        <div class="page-title">
+            <h1>Edit Complaint</h1>
+            <p>Update details of your pending complaint</p>
+        </div>
+        
+        <div class="user-profile-widget">
+            <div class="avatar" id="avatar-letters">S</div>
+            <div class="info">
+                <div class="name" id="student-name">Student Name</div>
+                <div class="role">Student</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container-boxed" style="max-width: 800px; margin: 0;">
+        <div class="premium-card">
+            <div class="premium-card-header">
+                <h2>Edit Complaint Details</h2>
+                <span class="badge" id="complaint-status-badge">Pending</span>
+            </div>
+            
+            <div id="alert-container" style="display: none;"></div>
+            
+            <form id="edit-complaint-form">
+                <input type="hidden" id="complaint-id">
+                
+                <!-- Title Field -->
+                <div class="form-group">
+                    <label for="title">Complaint Title</label>
+                    <input type="text" id="title" class="form-control" required>
+                </div>
+                
+                <!-- Read-only metadata columns -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                    <div>
+                        <span style="font-size: 13px; color: var(--color-text-light); font-weight: 600; text-transform: uppercase;">Category</span>
+                        <div style="font-size: 15px; font-weight: 600; margin-top: 4px;" id="category-text">-</div>
+                    </div>
+                    <div>
+                        <span style="font-size: 13px; color: var(--color-text-light); font-weight: 600; text-transform: uppercase;">Priority</span>
+                        <div style="font-size: 15px; font-weight: 600; margin-top: 4px;" id="priority-text">-</div>
+                    </div>
+                </div>
+
+                <!-- Description Field -->
+                <div class="form-group">
+                    <label for="description">Detailed Description</label>
+                    <textarea id="description" class="form-control" required></textarea>
+                </div>
+                
+                <!-- Actions Stack -->
+                <div style="display: flex; gap: 15px; margin-top: 30px;">
+                    <button type="submit" class="btn-premium" id="btn-save">Save Changes</button>
+                    <a href="view-complaints.html" class="btn-premium secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="js/database.js"></script>
+<script src="js/auth.js"></script>
+<script>
+    // Enforce login
+    const user = auth.requireStudent();
+    
+    // Set UI details
+    document.getElementById('student-name').textContent = user.name;
+    const initials = user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    document.getElementById('avatar-letters').textContent = initials;
+
+    // Load elements
+    const urlParams = new URLSearchParams(window.location.search);
+    const complaintId = urlParams.get('id');
+    const alertDiv = document.getElementById('alert-container');
+    const form = document.getElementById('edit-complaint-form');
+
+    if (!complaintId) {
+        window.location.href = 'view-complaints.html';
+    }
+
+    async function loadComplaintDetails() {
+        const complaint = await db.getComplaintById(complaintId);
+
+        if (!complaint || complaint.user_id !== user.id) {
+            window.location.href = 'view-complaints.html';
+            return;
+        }
+
+        // Check if editable (must be Pending)
+        if (complaint.status !== 'Pending') {
+            alertDiv.className = 'alert alert-danger';
+            alertDiv.textContent = 'This complaint cannot be edited because it is already ' + complaint.status.toLowerCase() + '.';
+            alertDiv.style.display = 'flex';
+            form.querySelector('button[type="submit"]').disabled = true;
+            document.getElementById('title').disabled = true;
+            document.getElementById('description').disabled = true;
+        }
+
+        // Populating inputs
+        document.getElementById('complaint-id').value = complaint.complaint_id;
+        document.getElementById('title').value = complaint.title;
+        document.getElementById('description').value = complaint.description;
+        document.getElementById('category-text').textContent = complaint.category;
+        document.getElementById('priority-text').textContent = complaint.priority;
+
+        // Set status badge class
+        const badge = document.getElementById('complaint-status-badge');
+        badge.textContent = complaint.status;
+        badge.className = `badge status-${complaint.status.toLowerCase().replace(' ', '-')}`;
+    }
+
+    loadComplaintDetails();
+
+    // Handle Submit
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const title = document.getElementById('title').value.trim();
+        const description = document.getElementById('description').value.trim();
+        
+        const response = await db.updateComplaint(complaintId, title, description);
+        
+        if (response.success) {
+            alertDiv.className = 'alert alert-success';
+            alertDiv.textContent = 'Complaint updated successfully! Redirecting...';
+            alertDiv.style.display = 'flex';
+            
+            setTimeout(() => {
+                window.location.href = 'view-complaints.html';
+            }, 1200);
+        } else {
+            alertDiv.className = 'alert alert-danger';
+            alertDiv.textContent = response.message || 'Failed to update complaint.';
+            alertDiv.style.display = 'flex';
+        }
+    });
+</script>
+</body>
+</html>

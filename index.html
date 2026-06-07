@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Student Complaint Management System (SCMS) - Submit and track academic and infrastructure complaints.">
+    <title>SCMS - Student Complaint Management System</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Special styles for landing page */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f1f5f9;
+            padding: 20px;
+        }
+        .landing-container {
+            width: 100%;
+            max-width: 1100px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            display: flex;
+            overflow: hidden;
+            min-height: 550px;
+        }
+        .landing-art {
+            width: 50%;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+        }
+        .landing-art img {
+            width: 100%;
+            max-width: 320px;
+            margin-bottom: 40px;
+            filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.15));
+        }
+        .landing-art h2 {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 15px;
+        }
+        .landing-art p {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+        }
+        .landing-actions {
+            width: 50%;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .landing-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .landing-logo img {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+        }
+        .landing-logo span {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--color-primary);
+        }
+        .landing-actions h1 {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--color-text-dark);
+            margin-bottom: 15px;
+            line-height: 1.2;
+        }
+        .landing-actions h1 span {
+            color: var(--color-primary);
+        }
+        .landing-actions .subtext {
+            color: var(--color-text-medium);
+            margin-bottom: 40px;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .button-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .btn-landing {
+            padding: 16px 28px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: var(--border-radius-md);
+            text-align: center;
+            text-decoration: none;
+            transition: var(--transition-normal);
+        }
+        .btn-landing-primary {
+            background: linear-gradient(135deg, var(--color-primary) 0%, #6366f1 100%);
+            color: white;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.2);
+        }
+        .btn-landing-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.3);
+        }
+        .btn-landing-secondary {
+            background: #ffffff;
+            color: var(--color-text-medium);
+            border: 1.5px solid #e2e8f0;
+        }
+        .btn-landing-secondary:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            background-color: var(--color-primary-light);
+        }
+        .btn-landing-tertiary {
+            background: #0f172a;
+            color: white;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+        }
+        .btn-landing-tertiary:hover {
+            transform: translateY(-2px);
+            background: #1e293b;
+        }
+        @media (max-width: 900px) {
+            .landing-container {
+                flex-direction: column;
+            }
+            .landing-art, .landing-actions {
+                width: 100%;
+                padding: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<main class="landing-container" id="landing-portal">
+    <div class="landing-art">
+        <img src="assets/student.png" alt="Student Illustration" id="landing-hero-img">
+        <h2>Unified Support Portal</h2>
+        <p>A transparent and efficient platform for students to voice issues regarding infrastructure, academic services, hostel comfort, and library amenities directly to university administration.</p>
+    </div>
+    
+    <div class="landing-actions">
+        <div class="landing-logo">
+            <img src="assets/logo.png" alt="SCMS Logo" id="landing-logo-img">
+            <span>SCMS</span>
+        </div>
+        
+        <h1>Welcome to the <span>Student Complaint Management System</span></h1>
+        
+        <p class="subtext">Submit your complaints, track resolution timelines, and maintain a history of all administrative interactions in one dashboard.</p>
+        
+        <div class="button-stack">
+            <a href="login.html" class="btn-landing btn-landing-primary" id="btn-student-login">Student Login</a>
+            <a href="register.html" class="btn-landing btn-landing-secondary" id="btn-student-register">Student Registration</a>
+            <a href="admin-login.html" class="btn-landing btn-landing-tertiary" id="btn-admin-login">Administrator Access</a>
+        </div>
+    </div>
+</main>
+
+</body>
+</html>
